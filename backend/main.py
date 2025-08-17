@@ -135,6 +135,39 @@ async def get_job_status(job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
     return {"data": jobs_db[job_id]}
 
+@app.get("/api/backtest/{job_id}/results")
+async def get_backtest_results(job_id: str):
+    """Get detailed backtest results"""
+    if job_id not in jobs_db:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    job = jobs_db[job_id]
+    if job["status"] != "completed":
+        raise HTTPException(status_code=400, detail="Job not completed")
+    
+    return {"data": job}
+
+@app.get("/api/backtest/{job_id}/trades")
+async def get_backtest_trades(job_id: str):
+    """Get trade history for backtest"""
+    if job_id not in jobs_db:
+        raise HTTPException(status_code=404, detail="Job not found")
+    
+    # Mock trade data - in real implementation, this would come from backtest results
+    mock_trades = [
+        {
+            "id": f"trade_{i}",
+            "timestamp": "2024-01-01T10:00:00Z",
+            "type": "buy" if i % 2 == 0 else "sell",
+            "price": 43000 + (i * 100),
+            "quantity": 0.01,
+            "pnl": (i % 3 - 1) * 50  # Mix of positive and negative
+        }
+        for i in range(10)
+    ]
+    
+    return {"data": mock_trades}
+
 @app.get("/api/jobs")
 async def list_jobs():
     """List all jobs"""
@@ -251,10 +284,11 @@ async def simulate_backtest_job(job_id: str):
     jobs_db[job_id]["status"] = "completed"
     jobs_db[job_id]["completed_at"] = datetime.now().isoformat()
     jobs_db[job_id]["results"] = {
-        "total_return": 15.7,
-        "sharpe_ratio": 1.35,
-        "max_drawdown": 8.2,
-        "total_trades": 156
+        "total_return": 15.7 + (hash(job_id) % 20),  # Vary results
+        "sharpe_ratio": 1.35 + (hash(job_id) % 100) / 100,
+        "max_drawdown": 8.2 + (hash(job_id) % 5),
+        "total_trades": 156 + (hash(job_id) % 50),
+        "win_rate": 65.0 + (hash(job_id) % 20)
     }
 
 async def simulate_optimization_job(job_id: str):
