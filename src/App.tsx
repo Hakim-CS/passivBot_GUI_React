@@ -4,6 +4,14 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import Instances from "./pages/Instances";
+import Backtest from "./pages/Backtest";
+import Optimize from "./pages/Optimize";
+import Analytics from "./pages/Analytics";
+import Remote from "./pages/Remote";
+import Coins from "./pages/Coins";
+import VPS from "./pages/VPS";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -16,6 +24,14 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/instances" element={<Instances />} />
+          <Route path="/backtest" element={<Backtest />} />
+          <Route path="/optimize" element={<Optimize />} />
+          <Route path="/analytics" element={<Analytics />} />
+          <Route path="/remote" element={<Remote />} />
+          <Route path="/coins" element={<Coins />} />
+          <Route path="/vps" element={<VPS />} />
+          <Route path="/settings" element={<Settings />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
