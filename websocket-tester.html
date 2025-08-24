@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PBGui Backend WebSocket Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        h1, h2 {
+            color: #333;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .disconnected {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .log-area {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+        
+        .disconnect {
+            background-color: #dc3545;
+        }
+        
+        .disconnect:hover {
+            background-color: #c82333;
+        }
+        
+        input, select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>🔌 PBGui Backend WebSocket Tester</h1>
+    
+    <div class="container">
+        <h2>Connection Settings</h2>
+        <div>
+            <label>Server URL:</label>
+            <input type="text" id="serverUrl" value="ws://localhost:8080" style="width: 200px;">
+        </div>
+        <div>
+            <label>Instance ID:</label>
+            <input type="text" id="instanceId" value="1" style="width: 100px;">
+        </div>
+        <div>
+            <label>Job ID:</label>
+            <input type="text" id="jobId" value="1" style="width: 100px;">
+        </div>
+    </div>
+    
+    <div class="grid">
+        <!-- Instance Logs WebSocket -->
+        <div class="container">
+            <h2>📋 Instance Logs</h2>
+            <div id="instanceLogsStatus" class="status disconnected">Disconnected</div>
+            <button id="connectInstanceLogs">Connect to Instance Logs</button>
+            <button id="disconnectInstanceLogs" class="disconnect" disabled>Disconnect</button>
+            <button id="clearInstanceLogs">Clear Logs</button>
+            <div id="instanceLogsArea" class="log-area">Waiting for connection...</div>
+        </div>
+        
+        <!-- Job Progress WebSocket -->
+        <div class="container">
+            <h2>⚡ Job Progress</h2>
+            <div id="jobProgressStatus" class="status disconnected">Disconnected</div>
+            <button id="connectJobProgress">Connect to Job Progress</button>
+            <button id="disconnectJobProgress" class="disconnect" disabled>Disconnect</button>
+            <button id="clearJobProgress">Clear Progress</button>
+            <div id="jobProgressArea" class="log-area">Waiting for connection...</div>
+        </div>
+        
+        <!-- Dashboard Metrics WebSocket -->
+        <div class="container">
+            <h2>📊 Dashboard Metrics</h2>
+            <div id="dashboardMetricsStatus" class="status disconnected">Disconnected</div>
+            <button id="connectDashboardMetrics">Connect to Dashboard Metrics</button>
+            <button id="disconnectDashboardMetrics" class="disconnect" disabled>Disconnect</button>
+            <button id="clearDashboardMetrics">Clear Metrics</button>
+            <div id="dashboardMetricsArea" class="log-area">Waiting for connection...</div>
+        </div>
+        
+        <!-- API Tester -->
+        <div class="container">
+            <h2>🌐 REST API Tester</h2>
+            <div>
+                <select id="apiEndpoint">
+                    <option value="/api/v1/health">Health Check</option>
+                    <option value="/api/v1/instances">Get Instances</option>
+                    <option value="/api/v1/dashboard/stats">Dashboard Stats</option>
+                    <option value="/api/v1/dashboard/performance">Dashboard Performance</option>
+                    <option value="/api/v1/vps">VPS List</option>
+                    <option value="/api/v1/settings">Settings</option>
+                </select>
+                <button id="testApiEndpoint">Test API</button>
+            </div>
+            <div id="apiResultArea" class="log-area">API responses will appear here...</div>
+        </div>
+    </div>
+    
+    <script>
+        // WebSocket connections
+        let instanceLogsWs = null;
+        let jobProgressWs = null;
+        let dashboardMetricsWs = null;
+        
+        // Get elements
+        const serverUrlInput = document.getElementById('serverUrl');
+        const instanceIdInput = document.getElementById('instanceId');
+        const jobIdInput = document.getElementById('jobId');
+        
+        // Instance Logs WebSocket
+        document.getElementById('connectInstanceLogs').addEventListener('click', () => {
+            const url = `${serverUrlInput.value}/ws/instances/${instanceIdInput.value}/logs`;
+            connectWebSocket('instanceLogs', url);
+        });
+        
+        document.getElementById('disconnectInstanceLogs').addEventListener('click', () => {
+            disconnectWebSocket('instanceLogs');
+        });
+        
+        document.getElementById('clearInstanceLogs').addEventListener('click', () => {
+            document.getElementById('instanceLogsArea').textContent = '';
+        });
+        
+        // Job Progress WebSocket
+        document.getElementById('connectJobProgress').addEventListener('click', () => {
+            const url = `${serverUrlInput.value}/ws/jobs/${jobIdInput.value}/progress`;
+            connectWebSocket('jobProgress', url);
+        });
+        
+        document.getElementById('disconnectJobProgress').addEventListener('click', () => {
+            disconnectWebSocket('jobProgress');
+        });
+        
+        document.getElementById('clearJobProgress').addEventListener('click', () => {
+            document.getElementById('jobProgressArea').textContent = '';
+        });
+        
+        // Dashboard Metrics WebSocket
+        document.getElementById('connectDashboardMetrics').addEventListener('click', () => {
+            const url = `${serverUrlInput.value}/ws/dashboard/metrics`;
+            connectWebSocket('dashboardMetrics', url);
+        });
+        
+        document.getElementById('disconnectDashboardMetrics').addEventListener('click', () => {
+            disconnectWebSocket('dashboardMetrics');
+        });
+        
+        document.getElementById('clearDashboardMetrics').addEventListener('click', () => {
+            document.getElementById('dashboardMetricsArea').textContent = '';
+        });
+        
+        // API Tester
+        document.getElementById('testApiEndpoint').addEventListener('click', async () => {
+            const endpoint = document.getElementById('apiEndpoint').value;
+            const baseUrl = serverUrlInput.value.replace('ws://', 'http://').replace('ws://', 'http://');
+            const url = `${baseUrl}${endpoint}`;
+            
+            const resultArea = document.getElementById('apiResultArea');
+            resultArea.textContent += `\n[${new Date().toLocaleTimeString()}] Testing: ${endpoint}\n`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                resultArea.textContent += `✅ Response (${response.status}): ${JSON.stringify(data, null, 2)}\n`;
+            } catch (error) {
+                resultArea.textContent += `❌ Error: ${error.message}\n`;
+            }
+            
+            resultArea.scrollTop = resultArea.scrollHeight;
+        });
+        
+        function connectWebSocket(type, url) {
+            const ws = new WebSocket(url);
+            const statusEl = document.getElementById(`${type}Status`);
+            const areaEl = document.getElementById(`${type}Area`);
+            const connectBtn = document.getElementById(`connect${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            const disconnectBtn = document.getElementById(`disconnect${type.charAt(0).toUpperCase() + type.slice(1)}`);
+            
+            ws.onopen = () => {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+                areaEl.textContent += `[${new Date().toLocaleTimeString()}] Connected to ${url}\n`;
+                areaEl.scrollTop = areaEl.scrollHeight;
+            };
+            
+            ws.onmessage = (event) => {
+                const timestamp = new Date().toLocaleTimeString();
+                let message;
+                
+                try {
+                    const data = JSON.parse(event.data);
+                    message = JSON.stringify(data, null, 2);
+                } catch {
+                    message = event.data;
+                }
+                
+                areaEl.textContent += `[${timestamp}] ${message}\n`;
+                areaEl.scrollTop = areaEl.scrollHeight;
+            };
+            
+            ws.onclose = () => {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+                areaEl.textContent += `[${new Date().toLocaleTimeString()}] Disconnected\n`;
+                areaEl.scrollTop = areaEl.scrollHeight;
+            };
+            
+            ws.onerror = (error) => {
+                areaEl.textContent += `[${new Date().toLocaleTimeString()}] Error: ${error.message || 'Connection failed'}\n`;
+                areaEl.scrollTop = areaEl.scrollHeight;
+            };
+            
+            // Store reference
+            if (type === 'instanceLogs') instanceLogsWs = ws;
+            else if (type === 'jobProgress') jobProgressWs = ws;
+            else if (type === 'dashboardMetrics') dashboardMetricsWs = ws;
+        }
+        
+        function disconnectWebSocket(type) {
+            let ws;
+            if (type === 'instanceLogs') ws = instanceLogsWs;
+            else if (type === 'jobProgress') ws = jobProgressWs;
+            else if (type === 'dashboardMetrics') ws = dashboardMetricsWs;
+            
+            if (ws) {
+                ws.close();
+            }
+        }
+        
+        // Auto-detect server URL from current page if running locally
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            const currentPort = window.location.port;
+            if (currentPort && currentPort !== '8080') {
+                serverUrlInput.value = `ws://${window.location.hostname}:8080`;
+            }
+        }
+    </script>
+</body>
+</html>

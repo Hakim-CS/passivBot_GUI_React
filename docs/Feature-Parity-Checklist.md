@@ -1,17 +1,33 @@
-# PBGui React - Feature Parity Checklist
+# PBGui React - Feature Parity Checklist (Go Backend)
+
+## 🚀 PHASE 1: Core Go Backend (Priority)
+- [ ] **Go Server Setup**
+  - [ ] Gin HTTP server with CORS
+  - [ ] GORM database integration (SQLite/PostgreSQL)
+  - [ ] Configuration management with Viper
+  - [ ] Structured logging with Logrus
+  - [ ] Docker containerization
+
+- [ ] **WebSocket/SSE Integration**
+  - [ ] Gorilla WebSocket for real-time communication
+  - [ ] Server-Sent Events for log streaming
+  - [ ] Connection management and cleanup
+  - [ ] Broadcasting to multiple clients
 
 ## Core Passivbot Management
-- [ ] **Instance Creation**
-  - [ ] Configure bot settings (exchange, symbol, strategy)
-  - [ ] Set risk parameters (leverage, position size)
-  - [ ] API key management per instance
-  - [ ] Strategy parameter customization
+- [ ] **Instance Creation (Go Implementation)**
+  - [ ] REST API endpoints (POST /api/v1/instances)
+  - [ ] GORM models for instance storage
+  - [ ] Configuration validation
+  - [ ] Exchange API integration
+  - [ ] Strategy parameter management
 
-- [ ] **Instance Control**
-  - [ ] Start/stop individual instances
-  - [ ] Bulk operations (start all, stop all)
-  - [ ] Restart with new configuration
-  - [ ] Emergency stop functionality
+- [ ] **Instance Control (Go Implementation)**
+  - [ ] Process management with os/exec
+  - [ ] Goroutine-based instance monitoring
+  - [ ] Bulk operations with worker pools
+  - [ ] Emergency stop with process killing
+  - [ ] Health check endpoints
 
 - [ ] **Instance Monitoring**
   - [ ] Real-time status display (running/stopped/error)

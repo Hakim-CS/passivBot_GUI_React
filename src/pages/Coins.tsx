@@ -489,7 +489,6 @@ export default function Coins() {
                             <Switch
                               checked={coin.enabled}
                               onCheckedChange={() => toggleCoin(coin.id)}
-                              size="sm"
                             />
                           </TableCell>
                           <TableCell>
